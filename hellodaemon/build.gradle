@@ -25,8 +25,14 @@ ext {
 }
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 25
     buildToolsVersion "26.0.1"
+
+    sourceSets {
+        main {
+            java.srcDirs = ["src/main/java", "src/main/aidl"]
+        }
+    }
 
     defaultConfig {
         minSdkVersion 14

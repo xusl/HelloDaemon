@@ -1,16 +1,69 @@
 package com.xdandroid.sample;
 
 import android.app.*;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.*;
+import android.util.Log;
 import android.view.*;
 
 import com.xdandroid.hellodaemon.*;
 
+import java.util.List;
+
 public class MainActivity extends Activity {
+    private IBookManagerInterface bookManagerInterface = null;
+    private List<Book> books = null;
+    private ServiceConnection aidlServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            bookManagerInterface = IBookManagerInterface.Stub.asInterface(iBinder);
+            if (bookManagerInterface == null)
+                return;
+
+            try {
+                doAddbook("C", 48);
+//                float price = 1.1f;
+                double price = 1.1; //1.1f, 1.1
+                doAddbook("Java", 1.1f);
+
+                books = bookManagerInterface.getBooks();
+                for (Book book: books) {
+                    Log.e("Main", "book name " + book.getName() + ", price " + book.getPrice());
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            bookManagerInterface = null;
+            books = null;
+        }
+    };
+
+    private void doAddbook(String name, float price) throws RemoteException {
+        if (bookManagerInterface == null)
+            return;
+
+        bookManagerInterface.addBook(new Book(name, price));
+    }
+
+    private void doBindService() {
+        Intent intent = new Intent("xdandroid.aidl.test");
+//        intent.setAction();
+        intent.setPackage(getPackageName());
+
+        bindService(intent, aidlServiceConnection, Context.BIND_AUTO_CREATE);
+    }
 
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
+        doBindService();
     }
 
     public void onClick(View v) {
