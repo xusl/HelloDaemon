@@ -13,7 +13,11 @@ import com.xdandroid.hellodaemon.*;
 
 import java.util.List;
 
+import static android.content.ContentValues.TAG;
+
 public class MainActivity extends Activity {
+    private final static String TAG ="MainActivity";
+
     private IBookManagerInterface bookManagerInterface = null;
     private List<Book> books = null;
     private ServiceConnection aidlServiceConnection = new ServiceConnection() {
@@ -30,7 +34,7 @@ public class MainActivity extends Activity {
                 doAddbook("Java", 1.1f);
 
                 books = bookManagerInterface.getBooks();
-                for (Book book: books) {
+                for (Book book : books) {
                     Log.e("Main", "book name " + book.getName() + ", price " + book.getPrice());
                 }
             } catch (RemoteException e) {
@@ -60,10 +64,39 @@ public class MainActivity extends Activity {
         bindService(intent, aidlServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
+    @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
+        LeakClass leakClass = new LeakClass();
+        leakClass.start();
         doBindService();
+        Log.e(TAG, "Activity created");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+//        stopService();
+        //unbind service , otherwise result in android.app.ServiceConnectionLeaked.
+        if (aidlServiceConnection != null) {
+            unbindService(aidlServiceConnection);
+            aidlServiceConnection = null;
+        }
+    }
+
+    class LeakClass extends Thread {
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    Thread.sleep(60 * 60 * 1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public void onClick(View v) {
