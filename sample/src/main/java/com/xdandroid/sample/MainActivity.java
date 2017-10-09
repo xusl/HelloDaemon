@@ -12,13 +12,13 @@ import android.view.*;
 import com.xdandroid.hellodaemon.*;
 
 import java.util.List;
-
-import static android.content.ContentValues.TAG;
+import java.util.concurrent.ExecutorService;
 
 public class MainActivity extends Activity {
-    private final static String TAG ="MainActivity";
+    private final static String TAG = "MainActivity";
 
     private IBookManagerInterface bookManagerInterface = null;
+    private LeakClass leakTestClass;
     private List<Book> books = null;
     private ServiceConnection aidlServiceConnection = new ServiceConnection() {
         @Override
@@ -68,8 +68,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
-        LeakClass leakClass = new LeakClass();
-        leakClass.start();
+//        LeakClass leakTestClass = new LeakClass();
+        leakTestClass = new LeakClass();
+
+        leakTestClass.start();
         doBindService();
         Log.e(TAG, "Activity created");
     }
@@ -83,19 +85,31 @@ public class MainActivity extends Activity {
             unbindService(aidlServiceConnection);
             aidlServiceConnection = null;
         }
+        if (leakTestClass.isAlive()) {
+            Log.e(TAG, "work thread is alive");
+            leakTestClass.interrupt();
+            leakTestClass = null;
+            Log.e(TAG, "work thread is destroy");
+        }
+
     }
 
-    class LeakClass extends Thread {
+    static class LeakClass extends Thread {
 
         @Override
         public void run() {
-            while (true) {
-                try {
+            try {
+                /*if while statement contain try / catch statement, it will
+                * cause memory leak, that is LeakClass object can not be free after thread
+                * interrupted.*/
+                while (/*true*/ /*!isInterrupted()*/ !Thread.currentThread().isInterrupted()) {
                     Thread.sleep(60 * 60 * 1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Log.e(TAG, "is interrupted():" + interrupted());
             }
+            Log.e(TAG, "work thread exit");
         }
     }
 
